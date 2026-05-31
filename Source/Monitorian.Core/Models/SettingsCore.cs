@@ -198,6 +198,17 @@ public class SettingsCore : BindableBase
 	private string _brightnessDownHotKey;
 
 	/// <summary>
+	/// Brightness change per hotkey press (percent, 1-20)
+	/// </summary>
+	[DataMember]
+	public int HotKeyBrightnessStep
+	{
+		get => _hotKeyBrightnessStep;
+		set => SetProperty(ref _hotKeyBrightnessStep, Math.Max(1, Math.Min(20, value)));
+	}
+	private int _hotKeyBrightnessStep = 2;
+
+	/// <summary>
 	/// Whether to record operations to log
 	/// </summary>
 	[DataMember]

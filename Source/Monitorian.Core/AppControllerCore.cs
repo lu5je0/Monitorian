@@ -541,46 +541,70 @@ public class AppControllerCore
 		}
 	}
 
-	private const int HotKeyBrightnessStep = 5;
+	private int HotKeyBrightnessStep => Settings.HotKeyBrightnessStep;
 
 	private int _hotKeyTargetBrightness = -1;
 	private int _hotKeyWorkerRunning; // 0/1 via Interlocked
-	private ViewModels.MonitorViewModel _hotKeyMonitor;
+	private volatile ViewModels.MonitorViewModel _hotKeyMonitor;
 
 	private void AdjustSelectedMonitorBrightness(int direction)
 	{
-		var monitor = _current.Dispatcher.Invoke(() =>
+		// Resolve monitor from cached reference (lock-free fast path).
+		var monitor = _hotKeyMonitor;
+		if (monitor is null || !monitor.IsControllable)
 		{
-			var monitors = Monitors.Where(x => x.IsTarget && x.IsControllable).ToArray();
-			return monitors.FirstOrDefault(x => ReferenceEquals(x, SelectedMonitor))
-				?? monitors.FirstOrDefault();
-		});
-		if (monitor is null)
+			// Slow path: resolve on UI thread (fire-and-forget).
+			_current.Dispatcher.BeginInvoke(new Action(() =>
+			{
+				var monitors = Monitors.Where(x => x.IsTarget && x.IsControllable).ToArray();
+				var m = monitors.FirstOrDefault(x => ReferenceEquals(x, SelectedMonitor))
+					?? monitors.FirstOrDefault();
+				if (m is null) return;
+				_hotKeyMonitor = m;
+				_hotKeyTargetBrightness = m.Brightness;
+				ApplyHotKeyDirection(m, direction);
+			}));
 			return;
-
-		// Reset target when switching monitors.
-		if (!ReferenceEquals(_hotKeyMonitor, monitor))
-		{
-			_hotKeyMonitor = monitor;
-			_hotKeyTargetBrightness = monitor.Brightness;
 		}
-		else if (_hotKeyTargetBrightness < 0)
+
+		ApplyHotKeyDirection(monitor, direction);
+	}
+
+	private void ApplyHotKeyDirection(ViewModels.MonitorViewModel monitor, int direction)
+	{
+		// Ensure target is initialized.
+		int current = Volatile.Read(ref _hotKeyTargetBrightness);
+		if (current < 0)
 		{
 			_hotKeyTargetBrightness = monitor.Brightness;
+			current = monitor.Brightness;
 		}
 
 		int lower = monitor.RangeLowest;
 		int upper = monitor.RangeHighest;
-		int next = _hotKeyTargetBrightness + direction * HotKeyBrightnessStep;
+		int step = HotKeyBrightnessStep;
+		int next;
+		if (direction > 0)
+		{
+			next = ((current / step) + 1) * step;
+		}
+		else
+		{
+			next = current % step == 0
+				? current - step
+				: (current / step) * step;
+		}
 		next = Math.Max(lower, Math.Min(upper, next));
-		_hotKeyTargetBrightness = next;
+		Volatile.Write(ref _hotKeyTargetBrightness, next);
 
-		// OSD update is fast; do it on UI thread immediately.
+		// OSD updates immediately (no DDC wait).
 		_current.Dispatcher.BeginInvoke(new Action(() => ShowBrightnessOsd(monitor, next)));
 
+		// Spin up a single worker to drive DDC writes.
 		if (Interlocked.CompareExchange(ref _hotKeyWorkerRunning, 1, 0) != 0)
-			return; // Worker already running; it will pick up the latest target.
+			return;
 
+		var capturedMonitor = monitor;
 		Task.Run(async () =>
 		{
 			try
@@ -593,26 +617,35 @@ public class AppControllerCore
 						break;
 					last = target;
 
-					EnsureUnisonWorkable(monitor);
-					await _current.Dispatcher.InvokeAsync(() => monitor.SetBrightness(target));
+					// DDC write directly on this thread (thread-safe via internal lock).
+					capturedMonitor.SetBrightnessDirectly(target);
+
+					// Notify UI of the change.
+					_current.Dispatcher.BeginInvoke(new Action(() => capturedMonitor.NotifyBrightnessChanged()));
+
+					// Throttle to avoid overloading DDC bus.
+					await Task.Delay(50);
 				}
 			}
 			finally
 			{
 				Interlocked.Exchange(ref _hotKeyWorkerRunning, 0);
-				// Drain any target that arrived between last read and reset.
-				if (Volatile.Read(ref _hotKeyTargetBrightness) != monitor.Brightness
-					&& Interlocked.CompareExchange(ref _hotKeyWorkerRunning, 1, 0) == 0)
+
+				// Final drain: if a new target arrived after last check.
+				int finalTarget = Volatile.Read(ref _hotKeyTargetBrightness);
+				if (finalTarget >= 0 && finalTarget != capturedMonitor.Brightness)
 				{
-					try
+					if (Interlocked.CompareExchange(ref _hotKeyWorkerRunning, 1, 0) == 0)
 					{
-						int target = Volatile.Read(ref _hotKeyTargetBrightness);
-						EnsureUnisonWorkable(monitor);
-						await _current.Dispatcher.InvokeAsync(() => monitor.SetBrightness(target));
-					}
-					finally
-					{
-						Interlocked.Exchange(ref _hotKeyWorkerRunning, 0);
+						try
+						{
+							capturedMonitor.SetBrightnessDirectly(finalTarget);
+							_current.Dispatcher.BeginInvoke(new Action(() => capturedMonitor.NotifyBrightnessChanged()));
+						}
+						finally
+						{
+							Interlocked.Exchange(ref _hotKeyWorkerRunning, 0);
+						}
 					}
 				}
 			}

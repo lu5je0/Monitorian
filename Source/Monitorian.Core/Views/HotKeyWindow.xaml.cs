@@ -27,6 +27,17 @@ public partial class HotKeyWindow : Window
 		UpBox.Text = controller.Settings.BrightnessUpHotKey ?? string.Empty;
 		DownBox.Text = controller.Settings.BrightnessDownHotKey ?? string.Empty;
 
+		// Select the matching step item.
+		int step = controller.Settings.HotKeyBrightnessStep;
+		foreach (System.Windows.Controls.ComboBoxItem item in StepBox.Items)
+		{
+			if (int.TryParse(item.Tag?.ToString(), out int v) && v == step)
+			{
+				StepBox.SelectedItem = item;
+				break;
+			}
+		}
+
 		_mover = new FloatWindowMover(this, pivot);
 
 		controller.WindowPainter.Add(this);
@@ -51,6 +62,15 @@ public partial class HotKeyWindow : Window
 		var value = e.IsClear ? string.Empty : new HotKeyDefinition(e.Modifiers, e.Key).Serialize();
 		DownBox.Text = value;
 		_controller.Settings.BrightnessDownHotKey = value;
+	}
+
+	private void StepBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+	{
+		if (StepBox.SelectedItem is System.Windows.Controls.ComboBoxItem item
+			&& int.TryParse(item.Tag?.ToString(), out int step))
+		{
+			_controller.Settings.HotKeyBrightnessStep = step;
+		}
 	}
 
 	protected override void OnKeyDown(KeyEventArgs e)

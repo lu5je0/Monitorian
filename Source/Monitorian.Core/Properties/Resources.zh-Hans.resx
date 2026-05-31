@@ -186,4 +186,22 @@
   <data name="UseLargeElements" xml:space="preserve">
     <value>使用大滑块</value>
   </data>
+  <data name="BrightnessHotKey" xml:space="preserve">
+    <value>亮度快捷键</value>
+  </data>
+  <data name="EnableBrightnessHotKey" xml:space="preserve">
+    <value>启用亮度快捷键</value>
+  </data>
+  <data name="BrightnessHotKeyUp" xml:space="preserve">
+    <value>增加亮度</value>
+  </data>
+  <data name="BrightnessHotKeyDown" xml:space="preserve">
+    <value>降低亮度</value>
+  </data>
+  <data name="BrightnessHotKeyPrompt" xml:space="preserve">
+    <value>点击输入框后按下快捷键组合，按 Esc 清除。</value>
+  </data>
+  <data name="BrightnessHotKeyStep" xml:space="preserve">
+    <value>每次按键调整幅度</value>
+  </data>
 </root>

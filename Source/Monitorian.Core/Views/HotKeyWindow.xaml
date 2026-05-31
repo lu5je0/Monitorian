@@ -27,9 +27,21 @@
 			<TextBlock Style="{StaticResource PlainTextStyle}"
 					   Text="{x:Static properties:Resources.BrightnessHotKeyDown}"/>
 			<controls:HotKeyBox x:Name="DownBox"
-								Margin="0,2,0,2"
+								Margin="0,2,0,6"
 								Padding="6,4"
 								HotKeyCaptured="DownBox_HotKeyCaptured"/>
+
+			<TextBlock Style="{StaticResource PlainTextStyle}"
+					   Text="{x:Static properties:Resources.BrightnessHotKeyStep}"/>
+			<ComboBox x:Name="StepBox"
+					  Margin="0,2,0,2"
+					  Padding="6,4"
+					  SelectionChanged="StepBox_SelectionChanged">
+				<ComboBoxItem Content="1%" Tag="1"/>
+				<ComboBoxItem Content="2%" Tag="2"/>
+				<ComboBoxItem Content="5%" Tag="5"/>
+				<ComboBoxItem Content="10%" Tag="10"/>
+			</ComboBox>
 
 			<TextBlock Style="{StaticResource PlainTextStyle}"
 					   Margin="0,4,0,0"

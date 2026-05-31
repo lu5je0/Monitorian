@@ -178,6 +178,15 @@ namespace Monitorian.Core.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Change per keystroke.
+        /// </summary>
+        public static string BrightnessHotKeyStep {
+            get {
+                return ResourceManager.GetString("BrightnessHotKeyStep", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Enable showing monitor identity.
         /// </summary>
         public static string EnableIdentity {

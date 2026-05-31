@@ -217,6 +217,25 @@ public class MonitorViewModel : ViewModelBase
 
 	public void SetBrightness(int brightness) => SetBrightness(brightness, false);
 
+	internal bool SetBrightnessDirectly(int brightness)
+	{
+		brightness = Math.Max(RangeLowest, Math.Min(RangeHighest, brightness));
+
+		AccessResult result;
+		lock (_lock)
+		{
+			result = _monitor.SetBrightness(brightness);
+		}
+
+		return result.Status == AccessStatus.Succeeded;
+	}
+
+	internal void NotifyBrightnessChanged()
+	{
+		OnPropertyChanged(nameof(BrightnessUnison));
+		OnPropertyChanged(nameof(Brightness));
+	}
+
 	private bool SetBrightness(int brightness, bool isCycle)
 	{
 		if (brightness < RangeLowest)
