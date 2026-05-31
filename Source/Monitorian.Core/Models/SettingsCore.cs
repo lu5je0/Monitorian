@@ -165,6 +165,39 @@ public class SettingsCore : BindableBase
 	private string _selectedDeviceInstanceId;
 
 	/// <summary>
+	/// Whether to enable global brightness hotkeys
+	/// </summary>
+	[DataMember]
+	public bool EnablesHotKey
+	{
+		get => _enablesHotKey;
+		set => SetProperty(ref _enablesHotKey, value);
+	}
+	private bool _enablesHotKey;
+
+	/// <summary>
+	/// Hotkey for increasing brightness, e.g. "Ctrl+Alt+Up". Empty disables.
+	/// </summary>
+	[DataMember]
+	public string BrightnessUpHotKey
+	{
+		get => _brightnessUpHotKey;
+		set => SetProperty(ref _brightnessUpHotKey, value);
+	}
+	private string _brightnessUpHotKey;
+
+	/// <summary>
+	/// Hotkey for decreasing brightness, e.g. "Ctrl+Alt+Down". Empty disables.
+	/// </summary>
+	[DataMember]
+	public string BrightnessDownHotKey
+	{
+		get => _brightnessDownHotKey;
+		set => SetProperty(ref _brightnessDownHotKey, value);
+	}
+	private string _brightnessDownHotKey;
+
+	/// <summary>
 	/// Whether to record operations to log
 	/// </summary>
 	[DataMember]

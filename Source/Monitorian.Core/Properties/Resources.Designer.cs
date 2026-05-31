@@ -133,6 +133,51 @@ namespace Monitorian.Core.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Brightness hotkeys.
+        /// </summary>
+        public static string BrightnessHotKey {
+            get {
+                return ResourceManager.GetString("BrightnessHotKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enable brightness hotkeys.
+        /// </summary>
+        public static string EnableBrightnessHotKey {
+            get {
+                return ResourceManager.GetString("EnableBrightnessHotKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Brightness up.
+        /// </summary>
+        public static string BrightnessHotKeyUp {
+            get {
+                return ResourceManager.GetString("BrightnessHotKeyUp", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Brightness down.
+        /// </summary>
+        public static string BrightnessHotKeyDown {
+            get {
+                return ResourceManager.GetString("BrightnessHotKeyDown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Click a box and press a key combination. Press Esc to clear.
+        /// </summary>
+        public static string BrightnessHotKeyPrompt {
+            get {
+                return ResourceManager.GetString("BrightnessHotKeyPrompt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Enable showing monitor identity.
         /// </summary>
         public static string EnableIdentity {

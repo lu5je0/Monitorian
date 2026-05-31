@@ -1,0 +1,41 @@
+<Window x:Class="Monitorian.Core.Views.HotKeyWindow"
+		xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:controls="clr-namespace:Monitorian.Core.Views.Controls"
+		xmlns:properties="clr-namespace:Monitorian.Core.Properties"
+		Width="240"
+		ResizeMode="NoResize" SizeToContent="WidthAndHeight"
+		ShowInTaskbar="False" Topmost="True"
+		AllowsTransparency="True" WindowStyle="None"
+		Background="{StaticResource App.Background.Plain}">
+	<StackPanel Margin="0,4">
+		<ContentControl Style="{StaticResource MenuItemStyle}">
+			<ToggleButton Padding="8,4"
+						  Style="{StaticResource CheckButtonItemStyle}"
+						  Content="{x:Static properties:Resources.EnableBrightnessHotKey}"
+						  IsChecked="{Binding Settings.EnablesHotKey}"/>
+		</ContentControl>
+
+		<StackPanel Margin="8,4">
+			<TextBlock Style="{StaticResource PlainTextStyle}"
+					   Text="{x:Static properties:Resources.BrightnessHotKeyUp}"/>
+			<controls:HotKeyBox x:Name="UpBox"
+								Margin="0,2,0,6"
+								Padding="6,4"
+								HotKeyCaptured="UpBox_HotKeyCaptured"/>
+
+			<TextBlock Style="{StaticResource PlainTextStyle}"
+					   Text="{x:Static properties:Resources.BrightnessHotKeyDown}"/>
+			<controls:HotKeyBox x:Name="DownBox"
+								Margin="0,2,0,2"
+								Padding="6,4"
+								HotKeyCaptured="DownBox_HotKeyCaptured"/>
+
+			<TextBlock Style="{StaticResource PlainTextStyle}"
+					   Margin="0,4,0,0"
+					   TextWrapping="Wrap"
+					   Foreground="{StaticResource App.Foreground.Shadow}"
+					   Text="{x:Static properties:Resources.BrightnessHotKeyPrompt}"/>
+		</StackPanel>
+	</StackPanel>
+</Window>

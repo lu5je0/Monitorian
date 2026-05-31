@@ -1,0 +1,42 @@
+<Window x:Class="Monitorian.Core.Views.BrightnessOsdWindow"
+		xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		Width="320"
+		ResizeMode="NoResize" SizeToContent="Height"
+		ShowInTaskbar="False" Topmost="True"
+		AllowsTransparency="True" WindowStyle="None"
+		Focusable="False" IsHitTestVisible="False"
+		Background="{StaticResource App.Background.Translucent}">
+	<Grid Margin="16,12">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="*"/>
+			<ColumnDefinition Width="Auto"/>
+		</Grid.ColumnDefinitions>
+
+		<TextBlock x:Name="NameText"
+				   Grid.Row="0" Grid.Column="0"
+				   FontSize="13"
+				   TextTrimming="CharacterEllipsis"
+				   Foreground="{StaticResource App.Foreground}"
+				   Text="Monitor"/>
+		<TextBlock x:Name="ValueText"
+				   Grid.Row="0" Grid.Column="1"
+				   Margin="8,0,0,0"
+				   FontSize="13"
+				   FontWeight="SemiBold"
+				   Foreground="{StaticResource App.Foreground}"
+				   Text="0%"/>
+		<ProgressBar x:Name="Bar"
+					 Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+					 Margin="0,8,0,0"
+					 Height="6"
+					 Minimum="0" Maximum="100" Value="0"
+					 Background="#33FFFFFF"
+					 Foreground="{StaticResource App.Foreground}"
+					 BorderThickness="0"/>
+	</Grid>
+</Window>

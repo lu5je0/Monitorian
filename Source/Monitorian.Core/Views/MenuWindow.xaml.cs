@@ -67,6 +67,28 @@ public partial class MenuWindow : Window
 		}
 	}
 
+	private void BrightnessHotKey_Click(object sender, RoutedEventArgs e)
+	{
+		if (sender is ButtonBase button)
+		{
+			var topLeft = button.PointToScreen(new Point(0, 0));
+			var bottomRight = button.PointToScreen(new Point(button.ActualWidth, button.ActualHeight));
+			var pivot = new Rect(topLeft, bottomRight);
+
+			DepartFromForeground();
+
+			var hotKeyWindow = new HotKeyWindow(_controller, pivot);
+			hotKeyWindow.Closed += OnClosed;
+			hotKeyWindow.Show();
+		}
+
+		void OnClosed(object sender, EventArgs e)
+		{
+			((Window)sender).Closed -= OnClosed;
+			ReturnToForeground();
+		}
+	}
+
 	#region Show/Close
 
 	public void DepartFromForeground()

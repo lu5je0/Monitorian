@@ -116,6 +116,13 @@
 					Click="InvertScrollDirection_Click"/>
 		</ContentControl>
 
+		<ContentControl Style="{StaticResource MenuItemStyle}">
+			<Button Padding="8,4"
+					Style="{StaticResource PlainButtonItemStyle}"
+					Content="{x:Static properties:Resources.BrightnessHotKey}"
+					Click="BrightnessHotKey_Click"/>
+		</ContentControl>
+
 		<Separator Style="{StaticResource MenuSeparatorStyle}"/>
 
 		<ContentControl Style="{StaticResource MenuItemStyle}">

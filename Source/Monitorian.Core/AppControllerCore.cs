@@ -40,6 +40,8 @@ public class AppControllerCore
 	private readonly DisplayInformationWatcher _displayInformationWatcher;
 	private readonly BrightnessWatcher _brightnessWatcher;
 	private readonly BrightnessConnector _brightnessConnector;
+	private HotKeyService _hotKeyService;
+	private BrightnessOsdWindow _osdWindow;
 
 	public AppControllerCore(AppKeeper keeper, SettingsCore settings)
 	{
@@ -80,6 +82,11 @@ public class AppControllerCore
 
 		var mainWindow = new MainWindow(this);
 		_current.MainWindow = mainWindow;
+
+		_hotKeyService = new HotKeyService();
+		_hotKeyService.BrightnessUpPressed += () => AdjustSelectedMonitorBrightness(+1);
+		_hotKeyService.BrightnessDownPressed += () => AdjustSelectedMonitorBrightness(-1);
+		ApplyHotKeySettings();
 
 		if (StartupAgent.IsWindowShowExpected())
 		{
@@ -153,6 +160,7 @@ public class AppControllerCore
 		_displayInformationWatcher.Dispose();
 		_brightnessWatcher.Dispose();
 		_brightnessConnector.Dispose();
+		_hotKeyService?.Dispose();
 	}
 
 	protected virtual Task<string> HandleRequestAsync(IReadOnlyCollection<string> args)
@@ -283,6 +291,12 @@ public class AppControllerCore
 				else
 					OperationRecorder.Disable();
 
+				break;
+
+			case nameof(Settings.EnablesHotKey):
+			case nameof(Settings.BrightnessUpHotKey):
+			case nameof(Settings.BrightnessDownHotKey):
+				ApplyHotKeySettings();
 				break;
 		}
 	}
@@ -525,6 +539,101 @@ public class AppControllerCore
 		{
 			monitor.DecrementBrightness(ViewManager.WheelFactor, false);
 		}
+	}
+
+	private const int HotKeyBrightnessStep = 5;
+
+	private int _hotKeyTargetBrightness = -1;
+	private int _hotKeyWorkerRunning; // 0/1 via Interlocked
+	private ViewModels.MonitorViewModel _hotKeyMonitor;
+
+	private void AdjustSelectedMonitorBrightness(int direction)
+	{
+		var monitor = _current.Dispatcher.Invoke(() =>
+		{
+			var monitors = Monitors.Where(x => x.IsTarget && x.IsControllable).ToArray();
+			return monitors.FirstOrDefault(x => ReferenceEquals(x, SelectedMonitor))
+				?? monitors.FirstOrDefault();
+		});
+		if (monitor is null)
+			return;
+
+		// Reset target when switching monitors.
+		if (!ReferenceEquals(_hotKeyMonitor, monitor))
+		{
+			_hotKeyMonitor = monitor;
+			_hotKeyTargetBrightness = monitor.Brightness;
+		}
+		else if (_hotKeyTargetBrightness < 0)
+		{
+			_hotKeyTargetBrightness = monitor.Brightness;
+		}
+
+		int lower = monitor.RangeLowest;
+		int upper = monitor.RangeHighest;
+		int next = _hotKeyTargetBrightness + direction * HotKeyBrightnessStep;
+		next = Math.Max(lower, Math.Min(upper, next));
+		_hotKeyTargetBrightness = next;
+
+		// OSD update is fast; do it on UI thread immediately.
+		_current.Dispatcher.BeginInvoke(new Action(() => ShowBrightnessOsd(monitor, next)));
+
+		if (Interlocked.CompareExchange(ref _hotKeyWorkerRunning, 1, 0) != 0)
+			return; // Worker already running; it will pick up the latest target.
+
+		Task.Run(async () =>
+		{
+			try
+			{
+				int last = -1;
+				while (true)
+				{
+					int target = Volatile.Read(ref _hotKeyTargetBrightness);
+					if (target == last)
+						break;
+					last = target;
+
+					EnsureUnisonWorkable(monitor);
+					await _current.Dispatcher.InvokeAsync(() => monitor.SetBrightness(target));
+				}
+			}
+			finally
+			{
+				Interlocked.Exchange(ref _hotKeyWorkerRunning, 0);
+				// Drain any target that arrived between last read and reset.
+				if (Volatile.Read(ref _hotKeyTargetBrightness) != monitor.Brightness
+					&& Interlocked.CompareExchange(ref _hotKeyWorkerRunning, 1, 0) == 0)
+				{
+					try
+					{
+						int target = Volatile.Read(ref _hotKeyTargetBrightness);
+						EnsureUnisonWorkable(monitor);
+						await _current.Dispatcher.InvokeAsync(() => monitor.SetBrightness(target));
+					}
+					finally
+					{
+						Interlocked.Exchange(ref _hotKeyWorkerRunning, 0);
+					}
+				}
+			}
+		});
+	}
+
+	private void ShowBrightnessOsd(ViewModels.MonitorViewModel monitor, int value)
+	{
+		_osdWindow ??= new BrightnessOsdWindow();
+		var name = !string.IsNullOrWhiteSpace(monitor.Name) ? monitor.Name : monitor.Description;
+		_osdWindow.ShowOsd(name, value);
+	}
+
+	private void ApplyHotKeySettings()
+	{
+		if (_hotKeyService is null)
+			return;
+
+		var up = HotKeyDefinition.TryParse(Settings.BrightnessUpHotKey);
+		var down = HotKeyDefinition.TryParse(Settings.BrightnessDownHotKey);
+		_hotKeyService.Apply(up, down, Settings.EnablesHotKey);
 	}
 
 	protected internal MonitorViewModel SelectedMonitor
