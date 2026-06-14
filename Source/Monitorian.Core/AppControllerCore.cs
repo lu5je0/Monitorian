@@ -610,6 +610,7 @@ public class AppControllerCore
 			try
 			{
 				int last = -1;
+				bool recovered = false;
 				while (true)
 				{
 					int target = Volatile.Read(ref _hotKeyTargetBrightness);
@@ -618,7 +619,41 @@ public class AppControllerCore
 					last = target;
 
 					// DDC write directly on this thread (thread-safe via internal lock).
-					capturedMonitor.SetBrightnessDirectly(target);
+					bool ok = capturedMonitor.SetBrightnessDirectly(target);
+					if (!ok)
+					{
+						if (recovered)
+						{
+							// Already retried once; give up this round.
+							_hotKeyMonitor = null;
+							Volatile.Write(ref _hotKeyTargetBrightness, -1);
+							break;
+						}
+						recovered = true;
+
+						// Stale handle (e.g. after sleep/monitor power cycle).
+						// Force an immediate rescan to refresh DDC handles, then retry.
+						try { await ScanAsync(); } catch { }
+
+						var refreshed = _current.Dispatcher.Invoke(() =>
+						{
+							var ms = Monitors.Where(x => x.IsTarget && x.IsControllable).ToArray();
+							return ms.FirstOrDefault(x => ReferenceEquals(x, SelectedMonitor))
+								?? ms.FirstOrDefault();
+						});
+						if (refreshed is null)
+						{
+							_hotKeyMonitor = null;
+							Volatile.Write(ref _hotKeyTargetBrightness, -1);
+							break;
+						}
+						capturedMonitor = refreshed;
+						_hotKeyMonitor = refreshed;
+
+						// Retry the same target on the refreshed monitor.
+						last = -1;
+						continue;
+					}
 
 					// Notify UI of the change.
 					_current.Dispatcher.BeginInvoke(new Action(() => capturedMonitor.NotifyBrightnessChanged()));
